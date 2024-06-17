@@ -303,9 +303,9 @@ export const NFTMarketplaceProvider = ({children})=> {
    }
 
 
-   const fetchNFTsByPinata = async (pageLimit, pageOffset) => {
+   const fetchNFTsByPinata = async () => {
     try {
-        const response = await axios.get(`https://api.pinata.cloud/data/pinList?status=pinned&pageLimit=${pageLimit}&pageOffset=${pageOffset}`, {
+        const response = await axios.get(`https://api.pinata.cloud/data/pinList?status=pinned&sort=DESC`, {
             headers: {
                 pinata_api_key: API_KEY_PINATA,
                 pinata_secret_api_key: API_SECRET,

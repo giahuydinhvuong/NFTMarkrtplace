@@ -26,7 +26,7 @@ const searchPage = () => {
     //   console.log(item)
       
     // })
-    fetchNFTsByPinata(10,20).then(items => handleSetNft(items))
+    fetchNFTsByPinata().then(items => handleSetNft(items))
     
   })
   console.log(nfts)
