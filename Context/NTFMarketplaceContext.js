@@ -31,9 +31,27 @@ const GateWayDoman = "https://turquoise-given-kiwi-99.mypinata.cloud"
 import { NFTMarketplaceAddress, NFTMarketplaceABI } from "./Constants";
 import { TbArrowAutofitContent } from "react-icons/tb";
 
+    
 
 
 
+
+export const NFTMarketplaceContext = React.createContext();
+
+export const NFTMarketplaceProvider = ({children})=> {
+    const titleData = "Discover, collect, and sell NFTs"
+
+    let id = 1;
+    //---------USESTATE
+    const [error , setError] = useState("");
+    const [openError , setOpenError] = useState(false)
+    const [currentAccount, setCurrentAccount] = useState("");
+    const [tokenURI, setTokenURI] = useState("")
+    const [tokenAdress, setTokenAdress ] = useState("")
+    const router = useRouter()
+    const [walletConnected, setWalletConnected] = useState(false);
+
+    
     //CONECTING WITH SMART CONTRACT
     const connectingWithSmartContract = async()=> {
         try {
@@ -47,13 +65,16 @@ import { TbArrowAutofitContent } from "react-icons/tb";
             
               // Wrap the provider with ethers.js
               const ethersProvider = new ethers.BrowserProvider(provider);
-            
+
+
               // Get the signer (an abstraction of an Ethereum account)
               const signer = await ethersProvider.getSigner();
 
                 // Log signer address for debugging
-        console.log("Signer address:", await signer.getAddress());
-            
+              console.log("Signer address:", await signer.getAddress());
+              
+              setTokenAdress(await signer.getAddress())
+
               const contract = new ethers.Contract( NFTMarketplaceAddress,
                 NFTMarketplaceABI, signer);
               return contract;
@@ -66,28 +87,22 @@ import { TbArrowAutofitContent } from "react-icons/tb";
     }
 
 
-export const NFTMarketplaceContext = React.createContext();
-
-export const NFTMarketplaceProvider = ({children})=> {
-    const titleData = "Discover, collect, and sell NFTs"
-
-
-    //---------USESTATE
-
-    const [currentAccount, setCurrentAccount] = useState("");
-    const router = useRouter()
     //------CHECK ID WALLET IS CONNECTED
     const checkIfWalletConnected = async() => {
         try{
-            if(!window.ethereum) return console.log("Install MetaMask");
+            if(!window.ethereum) return 
+                setOpenError(true),
+
+                setError("Install MetaMask");
 
             const accounts = await window.ethereum.request({
                 method: "eth_accounts",
             });
 
             if(accounts.length > 0){
-                setCurrentAccount(accounts[5])
-                console.log(accounts[5])
+                setCurrentAccount(accounts[0])
+           
+                console.log("day la accout : " + accounts)
             }else{
                 console.log("No account found");
             }
@@ -100,6 +115,7 @@ export const NFTMarketplaceProvider = ({children})=> {
     };
 
     useEffect(() => {
+        connectWallet();
         checkIfWalletConnected()
     }, []);
 
@@ -111,8 +127,9 @@ export const NFTMarketplaceProvider = ({children})=> {
         const accounts = await window.ethereum.request({
             method: "eth_requestAccounts",
         });
-
-        setCurrentAccount(accounts[5]);
+        setWalletConnected(true)
+        console.log("conenct wallet true")
+        setCurrentAccount(accounts[0])
         // window.location.reload();
     } catch (error){
         console.log("Error while connect to wallet");
@@ -121,6 +138,7 @@ export const NFTMarketplaceProvider = ({children})=> {
 
    //-------UPLOAD TO IPFS FUNCTION
    const uploadToIPFS = async(file) => {
+  
     if(file){
     try {
         const formData = new FormData()
@@ -137,6 +155,8 @@ export const NFTMarketplaceProvider = ({children})=> {
         })
         const url = `${GateWayDoman}/ipfs/${resFile.data.IpfsHash}`;
         console.log(url)
+        setTokenURI(url)
+        
         return url;
 
     } catch (error){
@@ -146,15 +166,22 @@ export const NFTMarketplaceProvider = ({children})=> {
 }
    }
 
+   function getRandomNumber(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
    //------CREATENFT FUNCTION
    const createNFT = async(name, price, image, description ) => {
         
-        if (!name || !description || !price || !image) 
+        if (!name || !description || !price || !image || !tokenAdress) 
             // return setError("Data is missing"), setOpenError(true);
             return console.log("Data is miss")
+            var owner = currentAccount;
+            var seller = tokenAdress;
 
-            const data = JSON.stringify({ name, description, image, price});        
-
+            const tokenId = getRandomNumber(1,1000);
+            const data = JSON.stringify({ name, description, image, price,seller,owner,tokenURI,tokenId});        
+            
             try {
                 const resFile = await axios({
                     method: "post",
@@ -167,7 +194,7 @@ export const NFTMarketplaceProvider = ({children})=> {
                     },
                 });
                 const url = `${GateWayDoman}/ipfs/${resFile.data.IpfsHash}`;
-                console.log(url);
+                id ++;
                 await createSale(url, price);
                 router.push("/searchPage");
             }catch(error){
@@ -193,7 +220,7 @@ export const NFTMarketplaceProvider = ({children})=> {
         // Getting the listing price from the contract
         const listingPrice = await contract.getListingPrice();
         console.log("Listing price:", listingPrice.toString());
-
+        
         // Determining the transaction type (new sale or resell)
         let transaction;
         if (!isReselling) {
@@ -201,10 +228,7 @@ export const NFTMarketplaceProvider = ({children})=> {
             transaction = await contract.createToken(url, price, {
                 value: listingPrice.toString(),
             });
-            console.log(url, price, {
-                value: listingPrice.toString(),
-            })
-            
+            console.log(transaction)
         } else {
             console.log("Reselling a token...");
             transaction = await contract.reSellToken(id, price, {
@@ -222,6 +246,7 @@ export const NFTMarketplaceProvider = ({children})=> {
     }
 };
     useEffect(() => {
+        checkIfWalletConnected()
         fetchMyNFTsOrListedNFT()
     }, [])
 
@@ -326,36 +351,77 @@ export const NFTMarketplaceProvider = ({children})=> {
           return Promise.all(promises)
           .then((response) => {
             //response handling    
-            return response.map(res => {            
+            return response.map(res => { 
                 return res.data
-            })
+                 
+            }).filter(res => res.tokenId !== undefined)
           })
           .catch((error) => {
             //error handling
             console.log("error : " + error)
           });
-         
-        
-          
+             
         
     } catch (error) {
         console.error("Error while fetching NFTs:", error);
     }
 };
 
+ 
 
-   //------BUY NFTs FUNCTION
+    //     async function buyNFT(nft) {
+    //     try {
+            
+    //         if (window.ethereum) {
+ 
+    //          await window.ethereum.enable();
+         
+    //         //After adding your Hardhat network to your metamask, this code will get providers and signers
+    //         const provider = new ethers.BrowserProvider(window.ethereum);
+    //         const signer = await provider.getSigner();
+           
+    //         //Pull the deployed contract instance
+    //         let contract = new ethers.Contract(NFTMarketplaceAddress,NFTMarketplaceABI , signer);
+    //         const salePrice = ethers.parseUnits(nft.price, 'ether')
+    //         //run the executeSale function
+    //         let transaction = await contract.createMarketSale(nft.tokenId, {value: salePrice});
+    //         await transaction.wait();
+    
+    //         alert('You successfully bought the NFT!');
+           
+    //         }else{
+    //             console.log("deo deo deo deo doe doe doe doe")
+    //         }
+    //     }
+    //     catch(e) {
+    //         console.log("Upload Error"+e)
+    //     }
+    // }
+    
+
+// //    ------BUY NFTs FUNCTION
    const buyNFT = async (nft) => {
     try{
+        connectWallet();
+        console.log(walletConnected)
         const contract = await connectingWithSmartContract();
-        const price = ethers.parseUnits(nft.price.toString(), "ether");
+        const price = ethers.parseUnits(nft.price, "ether");
+        
+        // const transaction = await contract.createMarketSale(nft.tokenId, {
+        //     value: price,
+        // });
+
+
 
         const transaction = await contract.createMarketSale(nft.tokenId, {
-            value: price, 
+            value: price,
         });
-
+     
+       
        await transaction.wait();
+       router.push("/author")
     }catch (error) {
+        console.log(error)
         console.log("Error while buying NFT")
     }
    }
@@ -371,6 +437,10 @@ export const NFTMarketplaceProvider = ({children})=> {
             fetchMyNFTsOrListedNFT, 
             buyNFT,
             fetchNFTsByPinata,
+            createSale, 
+            setOpenError,
+            error,
+            openError,
             currentAccount,
             titleData}}>
 

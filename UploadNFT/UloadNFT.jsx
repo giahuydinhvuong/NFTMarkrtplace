@@ -16,10 +16,14 @@ import { DropZone } from "../UploadNFT/uploadNFTIndex.js";
 
 const UloadNFT = ({ uploadToIPFS, createNFT }) => {
   const [price, setPrice] = useState("1");
+  // const [price, setPrice] = useState("");
   const [active, setActive] = useState(0);
-  const [name, setName] = useState("ho nhi");
-  const [website, setWebsite] = useState("none");
-  const [description, setDescription] = useState("none");
+  // const [name, setName] = useState("ho nhi");
+  const [name, setName] = useState("");
+  // const [website, setWebsite] = useState("none");
+  const [website, setWebsite] = useState("");
+  // const [description, setDescription] = useState("none");
+  const [description, setDescription] = useState("");
   const [royalties, setRoyalties] = useState("");
   const [fileSize, setFileSize] = useState("");
   const [category, setCategory] = useState(2);
