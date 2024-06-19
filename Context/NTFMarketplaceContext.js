@@ -30,6 +30,7 @@ const GateWayDoman = "https://turquoise-given-kiwi-99.mypinata.cloud"
 //INTERNAL IMPORT
 import { NFTMarketplaceAddress, NFTMarketplaceABI } from "./Constants";
 import { TbArrowAutofitContent } from "react-icons/tb";
+import { type } from "os";
 
     
 
@@ -91,7 +92,7 @@ export const NFTMarketplaceProvider = ({children})=> {
     const checkIfWalletConnected = async() => {
         try{
             if(!window.ethereum) return 
-                setOpenError(true),
+                // setOpenError(true),
 
                 setError("Install MetaMask");
 
@@ -228,7 +229,6 @@ export const NFTMarketplaceProvider = ({children})=> {
             transaction = await contract.createToken(url, price, {
                 value: listingPrice.toString(),
             });
-            console.log(transaction)
         } else {
             console.log("Reselling a token...");
             transaction = await contract.reSellToken(id, price, {
@@ -270,7 +270,6 @@ export const NFTMarketplaceProvider = ({children})=> {
                     unformattedPrice.toString(),
                     "ether"
                 );
-
                 return {
                     price,
                     tokenId: tokenId.toNumber(),
@@ -338,7 +337,7 @@ export const NFTMarketplaceProvider = ({children})=> {
         });
       
         let datas = [];
-        const dataUrls  = []
+        let dataUrls  = []
         const dataRows = response.data.rows;
         dataUrls=dataRows.map(dataRow => {
            return `${GateWayDoman}/ipfs/${dataRow.ipfs_pin_hash}`                  
@@ -405,18 +404,17 @@ export const NFTMarketplaceProvider = ({children})=> {
         connectWallet();
         console.log(walletConnected)
         const contract = await connectingWithSmartContract();
-        const price = ethers.parseUnits(nft.price, "ether");
-        
+        let price = ethers.parseUnits(nft.price, "ether");
+        // price = Number(price)
+        // salePrice = ethers.utils.parseUnits(salePrice, 'ether')
+
+        console.log("nft ",nft, price);
+
+        const transaction = await contract.createMarketSale(nft.tokenId);
+     
         // const transaction = await contract.createMarketSale(nft.tokenId, {
         //     value: price,
         // });
-
-
-
-        const transaction = await contract.createMarketSale(nft.tokenId, {
-            value: price,
-        });
-     
        
        await transaction.wait();
        router.push("/author")
